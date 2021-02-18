@@ -27,6 +27,9 @@ import nagp.directservice.sellers.service.ISellerService;
 @Service
 public class SellerService implements ISellerService{
 
+	@Resource(name = "restTemplate")
+	private RestTemplate restTemplate;
+	
 	@Resource
 	ISellerDao sellerDao;
 
@@ -93,7 +96,6 @@ public class SellerService implements ISellerService{
 		Optional<Seller> seller = getSeller(sellerId);
 		if(seller.isPresent()) {
 			String baseUrl = loadBalancerClient.choose("orders").getUri().toString() + "/orders/seller";
-			RestTemplate restTemplate = new RestTemplate();
 			ResponseEntity<String> response = null;
 			try {
 				UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl)
@@ -117,7 +119,6 @@ public class SellerService implements ISellerService{
 		Optional<Seller> seller = getSeller(sellerId);
 		if(seller.isPresent()) {
 			String baseUrl = loadBalancerClient.choose("orders").getUri().toString() + "/orders/allSellers";
-			RestTemplate restTemplate = new RestTemplate();
 			ResponseEntity<String> response = null;
 			try {
 				UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl)
