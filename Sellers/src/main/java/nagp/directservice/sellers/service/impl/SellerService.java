@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -38,6 +39,11 @@ public class SellerService implements ISellerService{
 
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(SellerService.class);
 
+	@JmsListener(destination = "SELLER_REQUESTED")
+    public void listener(String[] message){
+        logger.info("Seller "+message[0]+", you are requested for Request Id: "+message[1]+". Please accept/deny.");
+    }
+	
 
 	public Optional<Seller> getSeller(String id) {
 		return sellerDao.getSeller(id);
@@ -91,21 +97,11 @@ public class SellerService implements ISellerService{
 
 
 
-	@HystrixCommand(fallbackMethod = "getOrdersFallback")
+	
 	public String getOrderCount(String sellerId) throws InvalidSellerException{
 		Optional<Seller> seller = getSeller(sellerId);
 		if(seller.isPresent()) {
-			String baseUrl = loadBalancerClient.choose("orders").getUri().toString() + "/orders/seller";
-			ResponseEntity<String> response = null;
-			try {
-				UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl)
-						.queryParam("sellerId", sellerId);
-				builder.build();
-				response = restTemplate.exchange(builder.buildAndExpand().toUri(), HttpMethod.GET, null,
-						String.class);
-			} catch (Exception ex) {
-				System.out.println(ex);
-			}
+			ResponseEntity<String> response = getOrdersCount(sellerId);
 			return response.getBody();
 		}
 		else {
@@ -114,25 +110,48 @@ public class SellerService implements ISellerService{
 
 	}
 
+
 	@HystrixCommand(fallbackMethod = "getOrdersFallback")
+	private ResponseEntity<String> getOrdersCount(String sellerId) {
+		String baseUrl = loadBalancerClient.choose("orders").getUri().toString() + "/orders/seller";
+		ResponseEntity<String> response = null;
+		try {
+			UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl)
+					.queryParam("sellerId", sellerId);
+			builder.build();
+			response = restTemplate.exchange(builder.buildAndExpand().toUri(), HttpMethod.GET, null,
+					String.class);
+		} catch (Exception ex) {
+			System.out.println(ex);
+		}
+		return response;
+	}
+
+	
 	public String getAllOrders(String sellerId) throws InvalidSellerException {
 		Optional<Seller> seller = getSeller(sellerId);
 		if(seller.isPresent()) {
-			String baseUrl = loadBalancerClient.choose("orders").getUri().toString() + "/orders/allSellers";
-			ResponseEntity<String> response = null;
-			try {
-				UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl)
-						.queryParam("sellerId", sellerId);
-				response = restTemplate.exchange(builder.buildAndExpand().toUri(), HttpMethod.GET, null,
-						String.class);
-			} catch (Exception ex) {
-				System.out.println(ex);
-			}
-			return response.getBody();
+			return getOrdersFromOrderService(sellerId);
 		}
 		else {
 			throw new InvalidSellerException(sellerId);
 		}
+	}
+
+
+	@HystrixCommand(fallbackMethod = "getOrdersFallback")
+	private String getOrdersFromOrderService(String sellerId) {
+		String baseUrl = loadBalancerClient.choose("orders").getUri().toString() + "/orders/allSellers";
+		ResponseEntity<String> response = null;
+		try {
+			UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl)
+					.queryParam("sellerId", sellerId);
+			response = restTemplate.exchange(builder.buildAndExpand().toUri(), HttpMethod.GET, null,
+					String.class);
+		} catch (Exception ex) {
+			System.out.println(ex);
+		}
+		return response.getBody();
 	}
 
 
