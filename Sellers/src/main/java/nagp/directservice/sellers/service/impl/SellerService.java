@@ -30,7 +30,7 @@ public class SellerService implements ISellerService{
 
 	@Resource(name = "restTemplate")
 	private RestTemplate restTemplate;
-	
+
 	@Resource
 	ISellerDao sellerDao;
 
@@ -40,10 +40,10 @@ public class SellerService implements ISellerService{
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(SellerService.class);
 
 	@JmsListener(destination = "SELLER_REQUESTED")
-    public void listener(String[] message){
-        logger.info("Seller "+message[0]+", you are requested for Request Id: "+message[1]+". Please accept/deny.");
-    }
-	
+	public void listener(String[] message){
+		logger.info("Seller "+message[0]+", you are requested for Request Id: "+message[1]+". Please accept/deny.");
+	}
+
 
 	public Optional<Seller> getSeller(String id) {
 		return sellerDao.getSeller(id);
@@ -97,22 +97,10 @@ public class SellerService implements ISellerService{
 
 
 
-	
-	public String getOrderCount(String sellerId) throws InvalidSellerException{
-		Optional<Seller> seller = getSeller(sellerId);
-		if(seller.isPresent()) {
-			ResponseEntity<String> response = getOrdersCount(sellerId);
-			return response.getBody();
-		}
-		else {
-			throw new InvalidSellerException(sellerId);
-		}
-
-	}
-
 
 	@HystrixCommand(fallbackMethod = "getOrdersFallback")
-	private ResponseEntity<String> getOrdersCount(String sellerId) {
+	public String getOrderCount(String sellerId) throws InvalidSellerException{
+
 		String baseUrl = loadBalancerClient.choose("orders").getUri().toString() + "/orders/seller";
 		ResponseEntity<String> response = null;
 		try {
@@ -124,23 +112,16 @@ public class SellerService implements ISellerService{
 		} catch (Exception ex) {
 			System.out.println(ex);
 		}
-		return response;
-	}
 
-	
-	public String getAllOrders(String sellerId) throws InvalidSellerException {
-		Optional<Seller> seller = getSeller(sellerId);
-		if(seller.isPresent()) {
-			return getOrdersFromOrderService(sellerId);
-		}
-		else {
-			throw new InvalidSellerException(sellerId);
-		}
-	}
+		return response.getBody();
 
+
+	}
 
 	@HystrixCommand(fallbackMethod = "getOrdersFallback")
-	private String getOrdersFromOrderService(String sellerId) {
+	public String getAllOrders(String sellerId) throws InvalidSellerException {
+
+
 		String baseUrl = loadBalancerClient.choose("orders").getUri().toString() + "/orders/allSellers";
 		ResponseEntity<String> response = null;
 		try {
@@ -152,7 +133,9 @@ public class SellerService implements ISellerService{
 			System.out.println(ex);
 		}
 		return response.getBody();
+
 	}
+
 
 
 	public String getOrdersFallback(String sellerId){

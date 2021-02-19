@@ -116,12 +116,16 @@ public class SellerController {
 	@GetMapping(value = "orders/{sellerId}")
 	String getOrderCount(@PathVariable(name = "sellerId") String sellerId) throws InvalidSellerException {
 		logger.info("Working from port " + port + " of seller service");
+		if(!sellerService.getSeller(sellerId).isPresent())
+			throw new InvalidSellerException();
 		return sellerService.getOrderCount(sellerId);
 	}
 	
 	@GetMapping(value = "allOrders/{sellerId}")
 	String getAllOrders(@PathVariable(name = "sellerId") String sellerId) throws InvalidSellerException {
 		logger.info("Working from port " + port + " of Consumer service");
+		if(!sellerService.getSeller(sellerId).isPresent())
+			throw new InvalidSellerException();
 		return sellerService.getAllOrders(sellerId);
 	}
 }
