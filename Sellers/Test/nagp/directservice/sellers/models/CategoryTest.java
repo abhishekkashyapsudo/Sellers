@@ -12,9 +12,12 @@ public class CategoryTest {
 		assertEquals( Category.GROOMING.name(), "GROOMING");
 	}
 	
+
 	@Test
-	public void testFailing() {
-		assertEquals( Category.GROOMING.name(), "GROMING");
+	public void test1() {
+		assertEquals( Category.values().length, 4);
 	}
+	
+	
 	
 }
